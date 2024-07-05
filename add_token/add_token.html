@@ -1,0 +1,208 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BDT</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css"
+    />
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/toastify-js"
+    ></script>
+    <!-- <script src="https://c0f4f41c-2f55-4863-921b-sdk-docs.github.io/cdn/metamask-sdk.js"></script> -->
+    <script src="https://unpkg.com/@metamask/sdk@0.18.6/dist/browser/iife/metamask-sdk.js"></script>
+    <!-- google font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <style>
+    .addButton {
+      background-color: #f5b810;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      outline: none;
+    }
+  </style>
+  <body>
+    <h3>
+      Note : Please switch your network to Polygon Mainnet before adding token
+    </h3>
+    <button class="addButton" id="switchChain">Switch ETH Chain</button>
+    <button class="addButton" id="addToken">Add Token To Metamask</button>
+    <button class="addButton" id="addChain">Add ETH Chain</button>
+  </body>
+
+  <script>
+    let metadata = {
+      name: "Example Pure JS Dapp",
+      url: window.location.href,
+    };
+    const chainId = "0x89";
+    // const rpcUrl =
+    //   "https://polygon-mainnet.infura.io/v3/aea05301a55a49f1bce25a115c64e05a"; // 이더리움 메인넷 RPC URL
+    const rpcUrl = "https://polygon-rpc.com/";
+    const MMSDK = new MetaMaskSDK.MetaMaskSDK({
+      dappMetadata: metadata,
+      checkInstallationImmediately: true,
+    });
+
+    function showToast(message) {
+      Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top", // `top` or `bottom`
+        position: "right", // `left`, `center` or `right`
+        stopOnFocus: true, // Prevents dismissing of toast on hover
+        style: {
+          background: "linear-gradient(to right, #00b09b, #96c93d)",
+        },
+        onClick: function () {}, // Callback after click
+      }).showToast();
+    }
+
+    async function getChainID(ethereum) {
+      try {
+        let result = await ethereum.request({ method: "eth_chainId" });
+        console.log(result);
+        return result;
+      } catch (error) {
+        console.log(error);
+        return 0;
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function TokenAdd() {
+      try {
+        const ethereum = MMSDK.getProvider();
+        const tokenAddress = "0xc630c6bFF4d198F30d9Ab86F89FB83F0bc3fb948"; // 변경된 토큰 주소
+        const tokenSymbol = "BDT";
+        const tokenDecimals = 18;
+        const tokenImage =
+          "https://bitdonationps.com/wp-content/uploads/2024/04/Bitcoin_Logo.png";
+
+        if (ethereum) {
+          try {
+            let curChainId = await getChainID(ethereum);
+            if (!curChainId) {
+              await ethereum.request({ method: "eth_requestAccounts" });
+            }
+            curChainId = await getChainID(ethereum);
+            console.log(curChainId);
+            console.log("method started");
+            await ethereum.request({
+              method: "wallet_watchAsset",
+              params: {
+                type: "ERC20",
+                options: {
+                  address: tokenAddress,
+                  symbol: tokenSymbol,
+                  decimals: tokenDecimals,
+                  image: tokenImage,
+                },
+              },
+            });
+            console.log("Method called");
+            showToast("Token imported");
+          } catch (error) {
+            showToast("Something went wrong");
+            console.error(error);
+          }
+        } else {
+          console.log("메타마스크가 설치되어 있지 않습니다.");
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    async function switchChain() {
+      try {
+        let chainId = "0x89";
+        const ethereum = MMSDK.getProvider();
+        let curChainId = await getChainID();
+        console.log("Cur chain Id : ", curChainId);
+        try {
+          if (!curChainId) {
+            await ethereum.request({ method: "eth_requestAccounts" });
+          }
+          await sleep(1000);
+          await ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [
+              {
+                chainId: chainId,
+              },
+            ],
+          });
+          showToast("Network switch success");
+        } catch (switchError) {
+          console.log(switchError);
+          showToast(switchError.toString());
+        }
+      } catch (error) {
+        console.log(error);
+        showToast(error.toString());
+      }
+    }
+    async function switchNetwork() {
+      try {
+        let chainId = "0x89";
+        const ethereum = MMSDK.getProvider();
+        let curChainId = await getChainID();
+        console.log("Cur chain Id : ", curChainId);
+        try {
+          if (!curChainId) {
+            await ethereum.request({ method: "eth_requestAccounts" });
+          }
+          await sleep(1000);
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: chainId,
+                rpcUrls: [rpcUrl],
+                chainName: "Polygon Mainnet",
+                nativeCurrency: {
+                  name: "MATIC",
+                  symbol: "MATIC", // 2-6 characters long
+                  decimals: 18,
+                },
+                blockExplorerUrls: ["https://polygonscan.com/"],
+              },
+            ],
+          });
+          showToast("Network add success");
+        } catch (switchError) {
+          console.log(switchError);
+          showToast(switchError.toString());
+        }
+      } catch (error) {
+        console.log(error);
+        showToast(error.toString());
+      }
+    }
+    document.getElementById("addToken").onclick = TokenAdd;
+    document.getElementById("addChain").onclick = switchNetwork;
+    document.getElementById("switchChain").onclick = switchChain;
+  </script>
+
+  <script src="https://requirejs.org/docs/release/2.3.5/minified/require.js"></script>
+</html>
